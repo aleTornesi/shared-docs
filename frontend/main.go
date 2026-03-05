@@ -1,15 +1,20 @@
 package main
 
 import (
-	"net/http"
+	"frontend/handlers"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "Hello, World!")
-	})
+
+	r.POST("/login", handlers.Login)
+	r.GET("/login", handlers.LoginPage)
+
+	auth := r.Group("/", handlers.RequireAuth())
+	auth.GET("/", handlers.DocumentsPage)
+	auth.GET("/documents", handlers.DocumentsList)
+
 	r.Run(":8080")
 }

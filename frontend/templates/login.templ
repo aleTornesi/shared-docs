@@ -1,0 +1,18 @@
+package templates
+
+templ LoginPage() {
+	@Layout("Login") {
+		<h1>Login</h1>
+		<form method="POST" action="/login" style="margin-top: 1rem;">
+			<button type="submit" style="
+				padding: 0.75rem 1.5rem;
+				background: #333;
+				color: #fff;
+				border: none;
+				border-radius: 6px;
+				font-size: 1rem;
+				cursor: pointer;
+			">Sign In</button>
+		</form>
+	}
+}

@@ -9,7 +9,7 @@ RUN go mod tidy
 
 COPY . .
 
-RUN go build -o /app/docs
+RUN CGO_ENABLED=0 go build -o /app/docs
 
 FROM alpine:3.17
 

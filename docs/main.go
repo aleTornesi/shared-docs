@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"docs/db"
 	"fmt"
+	_ "github.com/lib/pq"
 	"slices"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,7 @@ func main() {
 	r := gin.Default()
 
 	r.POST("/login", Login)
-	r.GET("/documents", GetDocuments)
+	r.GET("/documents", AuthMiddleware, GetDocuments)
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -44,7 +45,14 @@ func GetClaims(c *gin.Context) (*Claims, error) {
 }
 
 func GetDocuments(c *gin.Context) {
-	conn, err := sql.Open("postgres", "user=postgres password=postgres dbname=postgres sslmode=disable")
+	conn, err := sql.Open("postgres", "host=db port=5432 user=postgres password=postgres dbname=shared-docs sslmode=disable")
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 	claims, err := GetClaims(c)
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -63,6 +71,7 @@ func GetDocuments(c *gin.Context) {
 
 	var documents []Document
 
+	println(user_id, len(rows))
 	for _, row := range rows {
 
 		i := slices.IndexFunc(documents, func(p Document) bool {

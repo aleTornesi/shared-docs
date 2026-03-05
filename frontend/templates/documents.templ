@@ -1,0 +1,33 @@
+package templates
+
+import "strconv"
+
+type Document struct {
+	ID    int    `json:"id"`
+	Title string `json:"title"`
+}
+
+templ DocumentsPage() {
+	@Layout("My Documents") {
+		<h1>My Documents</h1>
+		<div hx-get="/documents" hx-trigger="load" hx-indicator="this">
+			<div class="htmx-indicator spinner">Loading documents...</div>
+			<ul class="doc-list"></ul>
+		</div>
+	}
+}
+
+templ DocumentList(docs []Document) {
+	<ul class="doc-list">
+		for _, doc := range docs {
+			<li>
+				<a class="doc-card" href={ templ.SafeURL("/documents/" + strconv.Itoa(doc.ID)) }>
+					<span class="doc-title">{ doc.Title }</span>
+				</a>
+			</li>
+		}
+		if len(docs) == 0 {
+			<li class="spinner">No documents yet.</li>
+		}
+	</ul>
+}

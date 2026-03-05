@@ -2,14 +2,15 @@ FROM golang:1.25 AS builder
 
 WORKDIR /app
 
-COPY go.mod .
-COPY go.sum .
+RUN go install github.com/a-h/templ/cmd/templ@latest
 
-RUN go mod tidy
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
 
-RUN go build -o /app/docs
+RUN templ generate
+RUN CGO_ENABLED=0 go build -o /app/frontend
 
 FROM alpine:3.17
 
@@ -17,6 +18,6 @@ RUN apk add --no-cache ca-certificates
 
 WORKDIR /app
 
-COPY --from=builder /app/docs .
+COPY --from=builder /app/frontend .
 
-CMD ["/app/docs"]
+CMD ["/app/frontend"]
