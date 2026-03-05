@@ -1,16 +1,30 @@
 -- name: GetDocuments :many
-SELECT *
+SELECT d.id, d.title, d.owner_id, u.username, pages.c
 FROM documents d
-LEFT JOIN document_access da ON d.id = da.document_id
-LEFT JOIN page p ON d.id = p.document_id
-WHERE da.user_id = $1 OR d.owner_id = $1
+INNER JOIN users u ON d.owner_id = u.id
+LEFT JOIN LATERAL (
+    SELECT count(*) AS c FROM page WHERE document_id = d.id
+) pages ON true
+WHERE d.owner_id = $1 OR EXISTS (
+    SELECT 1
+    FROM document_access da
+    WHERE da.user_id = $1 AND da.document_id = d.id
+)
 ORDER BY d.id DESC;
 
--- name: GetDocument :one
-SELECT *
+-- name: GetDocument :many
+SELECT d.id, d.title, d.owner_id, u.username, p.page_number, p.content
 FROM documents d
-LEFT JOIN document_access da ON d.id = da.document_id
-WHERE d.id = $1 AND (da.user_id = $2 or d.owner_id = $2);
+INNER JOIN users u ON d.owner_id = u.id
+LEFT JOIN page p ON d.id = p.document_id
+WHERE d.id = $1 and (
+    d.owner_id = $2 OR EXISTS (
+        SELECT 1
+        FROM document_access da
+        WHERE da.user_id = $2 AND da.document_id = d.id
+    )
+)
+ORDER BY p.page_number ASC;
 
 -- name: CreateDocument :one
 INSERT INTO documents (title, owner_id)

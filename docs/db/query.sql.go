@@ -53,61 +53,90 @@ func (q *Queries) DeletePage(ctx context.Context, arg DeletePageParams) error {
 	return err
 }
 
-const getDocument = `-- name: GetDocument :one
-SELECT id, title, owner_id, document_id, user_id
+const getDocument = `-- name: GetDocument :many
+SELECT d.id, d.title, d.owner_id, u.username, p.page_number, p.content
 FROM documents d
-LEFT JOIN document_access da ON d.id = da.document_id
-WHERE d.id = $1 AND (da.user_id = $2 or d.owner_id = $2)
+INNER JOIN users u ON d.owner_id = u.id
+LEFT JOIN page p ON d.id = p.document_id
+WHERE d.id = $1 and (
+    d.owner_id = $2 OR EXISTS (
+        SELECT 1
+        FROM document_access da
+        WHERE da.user_id = $2 AND da.document_id = d.id
+    )
+)
+ORDER BY p.page_number ASC
 `
 
 type GetDocumentParams struct {
-	ID     int64
-	UserID int64
+	ID      int64
+	OwnerID int64
 }
 
 type GetDocumentRow struct {
 	ID         int64
 	Title      string
 	OwnerID    int64
-	DocumentID sql.NullInt64
-	UserID     sql.NullInt64
+	Username   string
+	PageNumber sql.NullInt16
+	Content    sql.NullString
 }
 
-func (q *Queries) GetDocument(ctx context.Context, arg GetDocumentParams) (GetDocumentRow, error) {
-	row := q.db.QueryRowContext(ctx, getDocument, arg.ID, arg.UserID)
-	var i GetDocumentRow
-	err := row.Scan(
-		&i.ID,
-		&i.Title,
-		&i.OwnerID,
-		&i.DocumentID,
-		&i.UserID,
-	)
-	return i, err
+func (q *Queries) GetDocument(ctx context.Context, arg GetDocumentParams) ([]GetDocumentRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDocument, arg.ID, arg.OwnerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDocumentRow
+	for rows.Next() {
+		var i GetDocumentRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.OwnerID,
+			&i.Username,
+			&i.PageNumber,
+			&i.Content,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getDocuments = `-- name: GetDocuments :many
-SELECT id, title, owner_id, da.document_id, user_id, p.document_id, page_number, content
+SELECT d.id, d.title, d.owner_id, u.username, pages.c
 FROM documents d
-LEFT JOIN document_access da ON d.id = da.document_id
-LEFT JOIN page p ON d.id = p.document_id
-WHERE da.user_id = $1 OR d.owner_id = $1
+INNER JOIN users u ON d.owner_id = u.id
+LEFT JOIN LATERAL (
+    SELECT count(*) AS c FROM page WHERE document_id = d.id
+) pages ON true
+WHERE d.owner_id = $1 OR EXISTS (
+    SELECT 1
+    FROM document_access da
+    WHERE da.user_id = $1 AND da.document_id = d.id
+)
 ORDER BY d.id DESC
 `
 
 type GetDocumentsRow struct {
-	ID           int64
-	Title        string
-	OwnerID      int64
-	DocumentID   sql.NullInt64
-	UserID       sql.NullInt64
-	DocumentID_2 sql.NullInt64
-	PageNumber   sql.NullInt16
-	Content      sql.NullString
+	ID       int64
+	Title    string
+	OwnerID  int64
+	Username string
+	C        int64
 }
 
-func (q *Queries) GetDocuments(ctx context.Context, userID int64) ([]GetDocumentsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getDocuments, userID)
+func (q *Queries) GetDocuments(ctx context.Context, ownerID int64) ([]GetDocumentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getDocuments, ownerID)
 	if err != nil {
 		return nil, err
 	}
@@ -119,11 +148,8 @@ func (q *Queries) GetDocuments(ctx context.Context, userID int64) ([]GetDocument
 			&i.ID,
 			&i.Title,
 			&i.OwnerID,
-			&i.DocumentID,
-			&i.UserID,
-			&i.DocumentID_2,
-			&i.PageNumber,
-			&i.Content,
+			&i.Username,
+			&i.C,
 		); err != nil {
 			return nil, err
 		}
