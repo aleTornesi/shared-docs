@@ -72,7 +72,7 @@ func UpdateDocumentTitle(c *gin.Context) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusNoContent {
 		c.String(resp.StatusCode, "Failed to update title")
 		return
 	}

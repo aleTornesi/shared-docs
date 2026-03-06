@@ -160,8 +160,9 @@ func PatchDocument(c *gin.Context) {
 
 	if body.Title != "" {
 		err := db.New(conn).PutTitle(context.Background(), db.PutTitleParams{
-			ID:    int64(id),
-			Title: body.Title,
+			ID:      int64(id),
+			OwnerID: user_id,
+			Title:   body.Title,
 		})
 
 		if err != nil {

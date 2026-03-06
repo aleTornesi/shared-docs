@@ -142,16 +142,16 @@ func (q *Queries) GetDocuments(ctx context.Context, ownerID int64) ([]GetDocumen
 const putTitle = `-- name: PutTitle :exec
 UPDATE documents
 SET title = $1
-WHERE id = $2
-RETURNING id
+WHERE id = $2 AND owner_id = $3
 `
 
 type PutTitleParams struct {
-	Title string
-	ID    int64
+	Title   string
+	ID      int64
+	OwnerID int64
 }
 
 func (q *Queries) PutTitle(ctx context.Context, arg PutTitleParams) error {
-	_, err := q.db.ExecContext(ctx, putTitle, arg.Title, arg.ID)
+	_, err := q.db.ExecContext(ctx, putTitle, arg.Title, arg.ID, arg.OwnerID)
 	return err
 }

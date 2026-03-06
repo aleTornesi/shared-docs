@@ -34,6 +34,12 @@ RETURNING id;
 -- name: PutTitle :exec
 UPDATE documents
 SET title = $1
-WHERE id = $2
-RETURNING id;
+WHERE id = $2 AND (
+    owner_id = $3 OR
+    EXISTS (
+        SELECT 1
+        FROM document_access
+        WHERE user_id = $3
+    )
+);
 
