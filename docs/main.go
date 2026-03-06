@@ -18,6 +18,8 @@ func main() {
 	r.GET("/documents/:id/", AuthMiddleware, GetDocument)
 	r.PATCH("/documents/:id", AuthMiddleware, PatchDocument)
 	r.PATCH("/documents/:id/", AuthMiddleware, PatchDocument)
+	r.POST("/documents/:id/pages", AuthMiddleware, AddPage)
+	r.POST("/documents/:id/pages/", AuthMiddleware, AddPage)
 
 	r.Run(":8080")
 }
