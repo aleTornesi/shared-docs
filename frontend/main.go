@@ -15,6 +15,9 @@ func main() {
 	auth := r.Group("/", handlers.RequireAuth())
 	auth.GET("/", handlers.DocumentsPage)
 	auth.GET("/documents", handlers.DocumentsList)
+	auth.GET("/documents/:id", handlers.DocumentPage)
+	auth.PATCH("/documents/:id", handlers.UpdateDocumentTitle)
+	auth.POST("/documents/:id/pages", handlers.AddPage)
 
 	r.Run(":8080")
 }

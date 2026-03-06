@@ -2,9 +2,21 @@ package templates
 
 import "strconv"
 
+type User struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+}
+
+type Page struct {
+	Number  int    `json:"number"`
+	Content string `json:"content"`
+}
+
 type Document struct {
 	ID    int    `json:"id"`
 	Title string `json:"title"`
+	Owner User   `json:"owner"`
+	Pages []Page `json:"pages,omitempty"`
 }
 
 templ DocumentsPage() {
@@ -15,6 +27,116 @@ templ DocumentsPage() {
 			<ul class="doc-list"></ul>
 		</div>
 	}
+}
+
+templ DocumentPage(doc Document) {
+	@Layout(doc.Title) {
+		<a href="/">&larr; Back to documents</a>
+		<div class="title-row" id="title-display">
+			<h1>{ doc.Title }</h1>
+			<button class="edit-btn" onclick="startEditTitle()">&#9998;</button>
+		</div>
+		<form id="title-edit" class="title-row" style="display:none"
+			hx-patch={ "/documents/" + strconv.Itoa(doc.ID) }
+			hx-target="#title-display"
+			hx-swap="outerHTML"
+			hx-trigger="submit"
+		>
+			<input
+				class="title-input"
+				type="text"
+				name="title"
+				value={ doc.Title }
+				onblur="submitTitleEdit()"
+				onkeydown="if(event.key==='Enter'){event.preventDefault();submitTitleEdit();}if(event.key==='Escape'){cancelEditTitle();}"
+			/>
+		</form>
+		<script>
+			function startEditTitle() {
+				document.getElementById('title-display').style.display = 'none';
+				var form = document.getElementById('title-edit');
+				form.style.display = 'flex';
+				var input = form.querySelector('input');
+				input.focus();
+				input.select();
+			}
+			function submitTitleEdit() {
+				var form = document.getElementById('title-edit');
+				if (form.style.display === 'none') return;
+				form.style.display = 'none';
+				htmx.trigger(form, 'submit');
+			}
+			function cancelEditTitle() {
+				document.getElementById('title-edit').style.display = 'none';
+				document.getElementById('title-display').style.display = 'flex';
+			}
+		</script>
+		<p class="doc-meta">By { doc.Owner.Username }</p>
+		<div class="pages" id="pages-container">
+			for i, page := range doc.Pages {
+				if i > 0 {
+					<button
+						class="add-page-btn"
+						hx-post={ "/documents/" + strconv.Itoa(doc.ID) + "/pages" }
+						hx-vals={ `{"index":` + strconv.Itoa(i) + `}` }
+						hx-target="#pages-container"
+						hx-swap="outerHTML"
+					>+ Add page</button>
+				}
+				<div class="page">
+					<div class="page-number">Page { strconv.Itoa(page.Number) }</div>
+					<div class="page-content" contenteditable="true">{ page.Content }</div>
+				</div>
+			}
+			if len(doc.Pages) == 0 {
+				<div class="page">
+					<div class="page-number">Page 1</div>
+					<div class="page-content" contenteditable="true"></div>
+				</div>
+			}
+			<button
+				class="add-page-btn"
+				hx-post={ "/documents/" + strconv.Itoa(doc.ID) + "/pages" }
+				hx-vals={ `{"index":` + strconv.Itoa(len(doc.Pages)) + `}` }
+				hx-target="#pages-container"
+				hx-swap="outerHTML"
+			>+ Add page</button>
+		</div>
+	}
+}
+
+templ PagesPartial(doc Document) {
+	<div class="pages" id="pages-container">
+		for i, page := range doc.Pages {
+			if i > 0 {
+				<button
+					class="add-page-btn"
+					hx-post={ "/documents/" + strconv.Itoa(doc.ID) + "/pages" }
+					hx-vals={ `{"index":` + strconv.Itoa(i) + `}` }
+					hx-target="#pages-container"
+					hx-swap="outerHTML"
+				>+ Add page</button>
+			}
+			<div class="page">
+				<div class="page-number">Page { strconv.Itoa(page.Number) }</div>
+				<div class="page-content" contenteditable="true">{ page.Content }</div>
+			</div>
+		}
+		<button
+			class="add-page-btn"
+			hx-post={ "/documents/" + strconv.Itoa(doc.ID) + "/pages" }
+			hx-vals={ `{"index":` + strconv.Itoa(len(doc.Pages)) + `}` }
+			hx-target="#pages-container"
+			hx-swap="outerHTML"
+		>+ Add page</button>
+	</div>
+}
+
+templ TitlePartial(doc Document) {
+	<div class="title-row" id="title-display">
+		<h1>{ doc.Title }</h1>
+		<button class="edit-btn" onclick="startEditTitle()">&#9998;</button>
+	</div>
 }
 
 templ DocumentList(docs []Document) {
