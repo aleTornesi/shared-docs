@@ -28,31 +28,6 @@ func (q *Queries) CreateDocument(ctx context.Context, arg CreateDocumentParams) 
 	return id, err
 }
 
-const deleteDocument = `-- name: DeleteDocument :exec
-DELETE FROM documents
-WHERE id = $1
-`
-
-func (q *Queries) DeleteDocument(ctx context.Context, id int64) error {
-	_, err := q.db.ExecContext(ctx, deleteDocument, id)
-	return err
-}
-
-const deletePage = `-- name: DeletePage :exec
-DELETE FROM page
-WHERE document_id = $1 AND page_number = $2
-`
-
-type DeletePageParams struct {
-	DocumentID int64
-	PageNumber int16
-}
-
-func (q *Queries) DeletePage(ctx context.Context, arg DeletePageParams) error {
-	_, err := q.db.ExecContext(ctx, deletePage, arg.DocumentID, arg.PageNumber)
-	return err
-}
-
 const getDocument = `-- name: GetDocument :many
 SELECT d.id, d.title, d.owner_id, u.username, p.page_number, p.content
 FROM documents d
@@ -164,20 +139,19 @@ func (q *Queries) GetDocuments(ctx context.Context, ownerID int64) ([]GetDocumen
 	return items, nil
 }
 
-const getPage = `-- name: GetPage :one
-SELECT document_id, page_number, content
-FROM page p
-WHERE p.document_id = $1 AND p.page_number = $2
+const putTitle = `-- name: PutTitle :exec
+UPDATE documents
+SET title = $1
+WHERE id = $2
+RETURNING id
 `
 
-type GetPageParams struct {
-	DocumentID int64
-	PageNumber int16
+type PutTitleParams struct {
+	Title string
+	ID    int64
 }
 
-func (q *Queries) GetPage(ctx context.Context, arg GetPageParams) (Page, error) {
-	row := q.db.QueryRowContext(ctx, getPage, arg.DocumentID, arg.PageNumber)
-	var i Page
-	err := row.Scan(&i.DocumentID, &i.PageNumber, &i.Content)
-	return i, err
+func (q *Queries) PutTitle(ctx context.Context, arg PutTitleParams) error {
+	_, err := q.db.ExecContext(ctx, putTitle, arg.Title, arg.ID)
+	return err
 }

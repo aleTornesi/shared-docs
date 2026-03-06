@@ -31,17 +31,9 @@ INSERT INTO documents (title, owner_id)
 VALUES ($1, $2)
 RETURNING id;
 
--- name: GetPage :one
-SELECT *
-FROM page p
-WHERE p.document_id = $1 AND p.page_number = $2;
-
-
--- name: DeletePage :exec
-DELETE FROM page
-WHERE document_id = $1 AND page_number = $2;
-
--- name: DeleteDocument :exec
-DELETE FROM documents
-WHERE id = $1;
+-- name: PutTitle :exec
+UPDATE documents
+SET title = $1
+WHERE id = $2
+RETURNING id;
 
