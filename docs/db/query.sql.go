@@ -28,6 +28,21 @@ func (q *Queries) CreateDocument(ctx context.Context, arg CreateDocumentParams) 
 	return id, err
 }
 
+const createPage = `-- name: CreatePage :exec
+INSERT INTO page (document_id, page_number, content)
+    VALUES ($1, $2, '')
+`
+
+type CreatePageParams struct {
+	DocumentID int64
+	PageNumber int16
+}
+
+func (q *Queries) CreatePage(ctx context.Context, arg CreatePageParams) error {
+	_, err := q.db.ExecContext(ctx, createPage, arg.DocumentID, arg.PageNumber)
+	return err
+}
+
 const getDocument = `-- name: GetDocument :many
 SELECT d.id, d.title, d.owner_id, u.username, p.page_number, p.content
 FROM documents d
@@ -142,7 +157,14 @@ func (q *Queries) GetDocuments(ctx context.Context, ownerID int64) ([]GetDocumen
 const putTitle = `-- name: PutTitle :exec
 UPDATE documents
 SET title = $1
-WHERE id = $2 AND owner_id = $3
+WHERE id = $2 AND (
+    owner_id = $3 OR
+    EXISTS (
+        SELECT 1
+        FROM document_access
+        WHERE user_id = $3 AND document_id = $2
+    )
+)
 `
 
 type PutTitleParams struct {
@@ -154,4 +176,44 @@ type PutTitleParams struct {
 func (q *Queries) PutTitle(ctx context.Context, arg PutTitleParams) error {
 	_, err := q.db.ExecContext(ctx, putTitle, arg.Title, arg.ID, arg.OwnerID)
 	return err
+}
+
+const updatePageNumbers = `-- name: UpdatePageNumbers :exec
+UPDATE page
+SET page_number = page_number + 1
+WHERE document_id = $1 AND page_number >= $2
+`
+
+type UpdatePageNumbersParams struct {
+	DocumentID int64
+	PageNumber int16
+}
+
+func (q *Queries) UpdatePageNumbers(ctx context.Context, arg UpdatePageNumbersParams) error {
+	_, err := q.db.ExecContext(ctx, updatePageNumbers, arg.DocumentID, arg.PageNumber)
+	return err
+}
+
+const validateAccess = `-- name: ValidateAccess :one
+SELECT 1
+FROM documents d
+WHERE d.id = $2 AND (
+    d.owner_id = $1 OR EXISTS (
+        SELECT 1
+        FROM document_access
+        WHERE document_id = $2 AND user_id = $1
+    )
+)
+`
+
+type ValidateAccessParams struct {
+	OwnerID int64
+	ID      int64
+}
+
+func (q *Queries) ValidateAccess(ctx context.Context, arg ValidateAccessParams) (int32, error) {
+	row := q.db.QueryRowContext(ctx, validateAccess, arg.OwnerID, arg.ID)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
 }
