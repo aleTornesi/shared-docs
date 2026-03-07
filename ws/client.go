@@ -5,6 +5,6 @@ import "github.com/gorilla/websocket"
 type Client struct {
 	ws   *websocket.Conn
 	send chan []byte
-	room string
+	room int64
 	hub  *Hub
 }

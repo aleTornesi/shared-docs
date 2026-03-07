@@ -53,12 +53,25 @@ services:
       context: ./ws
     depends_on:
       - db
+      - redis
     expose:
       - "8080"
+    environment:
+      REDIS_URL: redis://redis:6379
     develop:
       watch:
         - action: rebuild
           path: ./ws
 
+  redis:
+    image: redis:7-alpine
+    expose:
+      - "6379"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+
 volumes:
   pgdata:
+  redisdata:

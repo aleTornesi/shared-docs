@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -67,16 +68,38 @@ func handleConnection(ctx context.Context, conn *websocket.Conn) error {
 		return err
 	}
 
+	defer dbConn.Close()
+
 	claims, ok := ctx.Value("claims").(*Claims)
 	if !ok {
 		log.Println("no claims")
 		return fmt.Errorf("no claims")
 	}
 
-	db.New(dbConn).ValidateAccess(ctx, db.ValidateAccessParams{
+	authorized, err := db.New(dbConn).ValidateAccess(ctx, db.ValidateAccessParams{
 		ID:      connectionPayload.DocumentId,
 		OwnerID: claims.UserID,
 	})
+
+	if !authorized {
+		log.Println("unauthorized to access document")
+		return fmt.Errorf("unauthorized to access document")
+	}
+
+	h, ok := ctx.Value("hub").(*Hub)
+	if !ok {
+		log.Println("no hub")
+		return fmt.Errorf("no hub")
+	}
+
+	h.register <- &Client{
+		ws:   conn,
+		room: connectionPayload.DocumentId,
+		hub:  h,
+	}
+
+	router := NewRouter()
+	router.On(MessageTypeInsertText)
 
 	return nil
 }

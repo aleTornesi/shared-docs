@@ -195,7 +195,7 @@ func (q *Queries) UpdatePageNumbers(ctx context.Context, arg UpdatePageNumbersPa
 }
 
 const validateAccess = `-- name: ValidateAccess :one
-SELECT 1
+SELECT true
 FROM documents d
 WHERE d.id = $2 AND (
     d.owner_id = $1 OR EXISTS (
@@ -211,9 +211,9 @@ type ValidateAccessParams struct {
 	ID      int64
 }
 
-func (q *Queries) ValidateAccess(ctx context.Context, arg ValidateAccessParams) (int32, error) {
+func (q *Queries) ValidateAccess(ctx context.Context, arg ValidateAccessParams) (bool, error) {
 	row := q.db.QueryRowContext(ctx, validateAccess, arg.OwnerID, arg.ID)
-	var column_1 int32
+	var column_1 bool
 	err := row.Scan(&column_1)
 	return column_1, err
 }

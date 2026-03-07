@@ -55,7 +55,7 @@ func AddPage(c *gin.Context) {
 
 	dal := db.New(tx)
 
-	row, err := dal.ValidateAccess(context.Background(), db.ValidateAccessParams{
+	authorized, err := dal.ValidateAccess(context.Background(), db.ValidateAccessParams{
 		OwnerID: user_id,
 		ID:      id,
 	})
@@ -67,7 +67,7 @@ func AddPage(c *gin.Context) {
 		return
 	}
 
-	if row == 0 {
+	if !authorized {
 		c.JSON(403, gin.H{
 			"error": "not allowed",
 		})

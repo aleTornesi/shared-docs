@@ -44,7 +44,7 @@ WHERE id = $2 AND (
 );
 
 -- name: ValidateAccess :one
-SELECT 1
+SELECT true
 FROM documents d
 WHERE d.id = $2 AND (
     d.owner_id = $1 OR EXISTS (
