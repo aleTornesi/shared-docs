@@ -8,7 +8,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/atornesi/shared-docs/db"
+	"github.com/aleTornesi/shared-docs/db"
 	"github.com/gorilla/websocket"
 )
 
@@ -93,13 +93,14 @@ func handleConnection(ctx context.Context, conn *websocket.Conn) error {
 	}
 
 	h.register <- &Client{
-		ws:   conn,
-		room: connectionPayload.DocumentId,
-		hub:  h,
+		ws:     conn,
+		room:   connectionPayload.DocumentId,
+		userID: claims.UserID,
+		hub:    h,
 	}
 
-	router := NewRouter()
-	router.On(MessageTypeInsertText)
+	// router := NewRouter()
+	// router.On(MessageTypeInsertText)
 
 	return nil
 }

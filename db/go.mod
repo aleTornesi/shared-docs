@@ -1,3 +1,3 @@
-module github.com/atornesi/shared-docs/db
+module github.com/aleTornesi/shared-docs/db
 
 go 1.25.0

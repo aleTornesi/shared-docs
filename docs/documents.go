@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
-	"github.com/atornesi/shared-docs/db"
+	"github.com/aleTornesi/shared-docs/db"
 	"slices"
 	"strconv"
 

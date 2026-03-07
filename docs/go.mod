@@ -3,7 +3,7 @@ module docs
 go 1.25.0
 
 require (
-	github.com/atornesi/shared-docs/db v0.0.0
+	github.com/aleTornesi/shared-docs/db v0.0.0
 	github.com/gin-gonic/gin v1.12.0
 )
 
@@ -40,3 +40,5 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 )
+
+replace github.com/aleTornesi/shared-docs/db v0.0.0 => ../db
