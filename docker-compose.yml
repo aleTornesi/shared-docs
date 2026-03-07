@@ -48,5 +48,17 @@ services:
     ports:
       - "5432:5432"
 
+  ws:
+    build:
+      context: ./ws
+    depends_on:
+      - db
+    expose:
+      - "8080"
+    develop:
+      watch:
+        - action: rebuild
+          path: ./ws
+
 volumes:
   pgdata:
