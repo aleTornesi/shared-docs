@@ -3,8 +3,10 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"frontend/templates"
 
@@ -33,6 +35,7 @@ func DocumentPage(c *gin.Context) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Printf("DocumentPage: GET /documents/%s failed: %v", id, err)
 		c.String(http.StatusBadGateway, "Failed to reach API")
 		return
 	}
@@ -45,6 +48,7 @@ func DocumentPage(c *gin.Context) {
 
 	var doc templates.Document
 	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+		log.Printf("DocumentPage: failed to decode response for document %s: %v", id, err)
 		c.String(http.StatusInternalServerError, "Failed to parse document")
 		return
 	}
@@ -67,12 +71,14 @@ func UpdateDocumentTitle(c *gin.Context) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Printf("UpdateDocumentTitle: PATCH /documents/%s failed: %v", id, err)
 		c.String(http.StatusBadGateway, "Failed to reach API")
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
+		log.Printf("UpdateDocumentTitle: PATCH /documents/%s returned %d", id, resp.StatusCode)
 		c.String(resp.StatusCode, "Failed to update title")
 		return
 	}
@@ -89,10 +95,11 @@ func UpdateDocumentTitle(c *gin.Context) {
 
 func AddPage(c *gin.Context) {
 	id := c.Param("id")
-	index := c.PostForm("index")
+	indexStr := c.PostForm("index")
+	indexInt, _ := strconv.Atoi(indexStr)
 
-	payload, _ := json.Marshal(map[string]string{"index": index})
-	req, _ := http.NewRequest("POST", apiBase()+"/documents/"+id+"/pages/", bytes.NewReader(payload))
+	payload, _ := json.Marshal(map[string]int{"page_index": indexInt})
+	req, _ := http.NewRequest("POST", apiBase()+"/documents/"+id+"/pages", bytes.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 	token, _ := c.Get("token")
 	if t, ok := token.(string); ok {
@@ -101,12 +108,14 @@ func AddPage(c *gin.Context) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Printf("AddPage: POST /documents/%s/pages failed: %v", id, err)
 		c.String(http.StatusBadGateway, "Failed to reach API")
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		log.Printf("AddPage: POST /documents/%s/pages returned %d", id, resp.StatusCode)
 		c.String(resp.StatusCode, "Failed to add page")
 		return
 	}
@@ -118,6 +127,7 @@ func AddPage(c *gin.Context) {
 	}
 	docResp, err := http.DefaultClient.Do(docReq)
 	if err != nil {
+		log.Printf("AddPage: GET /documents/%s failed: %v", id, err)
 		c.String(http.StatusBadGateway, "Failed to reach API")
 		return
 	}
@@ -125,6 +135,7 @@ func AddPage(c *gin.Context) {
 
 	var doc templates.Document
 	if err := json.NewDecoder(docResp.Body).Decode(&doc); err != nil {
+		log.Printf("AddPage: failed to decode response for document %s: %v", id, err)
 		c.String(http.StatusInternalServerError, "Failed to parse document")
 		return
 	}
@@ -142,6 +153,7 @@ func DocumentsList(c *gin.Context) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
+		log.Printf("DocumentsList: GET /documents failed: %v", err)
 		c.String(http.StatusBadGateway, "Failed to reach API")
 		return
 	}
@@ -149,6 +161,7 @@ func DocumentsList(c *gin.Context) {
 
 	var docs []templates.Document
 	if err := json.NewDecoder(resp.Body).Decode(&docs); err != nil {
+		log.Printf("DocumentsList: failed to decode response: %v", err)
 		c.String(http.StatusInternalServerError, "Failed to parse documents")
 		return
 	}

@@ -57,7 +57,7 @@ CREATE TABLE public.page (
 	document_id int8 NOT NULL,
 	page_number int2 NOT NULL,
 	"content" text NOT NULL,
-	CONSTRAINT page_document_id_page_number_key UNIQUE (document_id, page_number),
+	CONSTRAINT page_document_id_page_number_key UNIQUE (document_id, page_number) INITIALLY DEFERRED,
 	CONSTRAINT page_document_id_fkey FOREIGN KEY (document_id) REFERENCES public.documents(id)
 );
 

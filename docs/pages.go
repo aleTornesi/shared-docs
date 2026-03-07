@@ -95,7 +95,7 @@ func AddPage(c *gin.Context) {
 		return
 	}
 
-	err = db.New(conn).CreatePage(context.Background(), db.CreatePageParams{
+	err = dal.CreatePage(context.Background(), db.CreatePageParams{
 		DocumentID: id,
 		PageNumber: body.PageIndex + 1,
 	})
