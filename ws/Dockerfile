@@ -2,18 +2,20 @@ FROM golang:1.25 AS builder
 
 WORKDIR /app
 
-COPY go.mod .
-COPY go.sum .
+COPY ws/go.mod .
+COPY ws/go.sum .
 
-RUN go mod tidy
+COPY db /db
 
-COPY . .
+RUN ["go", "mod", "download"]
 
-RUN CGO_ENABLED=0 go build -o /app/ws
+COPY ws/ .
+
+RUN ["go", "build", "-o", "ws"]
 
 FROM alpine:3.17
 
-RUN apk add --no-cache ca-certificates
+RUN ["apk", "add", "--no-cache", "ca-certificates"]
 
 WORKDIR /app
 

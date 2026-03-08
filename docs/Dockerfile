@@ -2,14 +2,16 @@ FROM golang:1.25 AS builder
 
 WORKDIR /app
 
-COPY go.mod .
-COPY go.sum .
+COPY docs/go.mod .
+COPY docs/go.sum .
 
-RUN go mod tidy
+COPY db /db
 
-COPY . .
+RUN ["go", "mod", "download"]
 
-RUN CGO_ENABLED=0 go build -o /app/docs
+COPY docs/ .
+
+RUN ["go", "build", "-o", "docs"]
 
 FROM alpine:3.17
 
