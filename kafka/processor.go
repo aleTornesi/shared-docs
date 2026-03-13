@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"sync"
 
 	"github.com/segmentio/kafka-go"
 )
 
-// EditEvent mirrors the edit messages published by the ws service.
 type EditEvent struct {
 	DocumentID int64  `json:"document_id"`
 	UserID     int64  `json:"user_id"`
@@ -27,18 +27,32 @@ func NewProcessor(db *sql.DB) *Processor {
 }
 
 func (p *Processor) ProcessBatch(ctx context.Context, msgs []kafka.Message) error {
-	events := make([]EditEvent, 0, len(msgs))
+	byDoc := map[int64][]EditEvent{}
 	for _, msg := range msgs {
 		var e EditEvent
 		if err := json.Unmarshal(msg.Value, &e); err != nil {
-			log.Printf("unmarshal msg offset=%d: %v", msg.Offset, err)
+			log.Printf("unmarshal offset=%d: %v", msg.Offset, err)
 			continue
 		}
-		events = append(events, e)
+		byDoc[e.DocumentID] = append(byDoc[e.DocumentID], e)
 	}
 
-	// TODO: apply events to document content in DB.
-	// Group by document_id, apply edits in order, then persist in a single transaction.
-	log.Printf("processed batch of %d events", len(events))
+	var wg sync.WaitGroup
+	for docID, events := range byDoc {
+		wg.Add(1)
+		go func(docID int64, events []EditEvent) {
+			defer wg.Done()
+			if err := p.applyEdits(ctx, docID, events); err != nil {
+				log.Printf("applyEdits doc=%d: %v", docID, err)
+			}
+		}(docID, events)
+	}
+	wg.Wait()
+	return nil
+}
+
+func (p *Processor) applyEdits(ctx context.Context, docID int64, events []EditEvent) error {
+	// TODO: apply events in order to page.content for docID
+	log.Printf("applying %d edits to doc=%d", len(events), docID)
 	return nil
 }

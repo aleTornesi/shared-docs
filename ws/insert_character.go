@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -32,5 +33,18 @@ func insertText(c *Client, insertData *Insert) {
 		log.Printf("GetUserCursorPosition: %v", err)
 		return
 	}
+
+	position, _ := strconv.Atoi(val)
+	event := EditEvent{
+		DocumentID: c.room,
+		UserID:     c.userID,
+		Type:       string(MessageTypeInsertText),
+		Position:   position,
+		Character:  insertData.Text,
+	}
+	if err := publishEditEvent(context.Background(), event); err != nil {
+		log.Printf("publishEditEvent: %v", err)
+	}
+
 	c.send <- []byte(val)
 }

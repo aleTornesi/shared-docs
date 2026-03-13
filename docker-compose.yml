@@ -57,10 +57,13 @@ services:
     depends_on:
       - db
       - redis
+      - kafka
     expose:
       - "8080"
     environment:
       REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_TOPIC: doc-edits
     develop:
       watch:
         - action: rebuild
@@ -96,6 +99,7 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 100
 
   batch-processor:
     build:
