@@ -62,6 +62,14 @@ CREATE TABLE public.page (
 );
 
 
+-- public.processed_events definition
+
+CREATE TABLE public.processed_events (
+	event_id varchar(36) NOT NULL,
+	CONSTRAINT processed_events_pkey PRIMARY KEY (event_id)
+);
+
+
 -- public.document_access definition
 
 -- Drop table

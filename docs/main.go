@@ -1,10 +1,15 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
+
+var openDB = func() (*sql.DB, error) {
+	return sql.Open("postgres", "host=db port=5432 user=postgres password=postgres dbname=shared-docs sslmode=disable")
+}
 
 func main() {
 	r := gin.Default()

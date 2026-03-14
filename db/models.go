@@ -21,6 +21,10 @@ type Page struct {
 	Content    string
 }
 
+type ProcessedEvent struct {
+	EventID string
+}
+
 type User struct {
 	ID       int64
 	Username string

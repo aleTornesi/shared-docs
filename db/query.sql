@@ -2,7 +2,7 @@
 SELECT d.id, d.title, d.owner_id, u.username, pages.c
 FROM documents d
 INNER JOIN users u ON d.owner_id = u.id
-LEFT JOIN LATERAL (
+INNER JOIN LATERAL (
     SELECT count(*) AS c FROM page WHERE document_id = d.id
 ) pages ON true
 WHERE d.owner_id = $1 OR EXISTS (
@@ -16,7 +16,7 @@ ORDER BY d.id DESC;
 SELECT d.id, d.title, d.owner_id, u.username, p.page_number, p.content
 FROM documents d
 INNER JOIN users u ON d.owner_id = u.id
-LEFT JOIN page p ON d.id = p.document_id
+INNER JOIN page p ON d.id = p.document_id
 WHERE d.id = $1 and (
     d.owner_id = $2 OR EXISTS (
         SELECT 1
@@ -62,3 +62,19 @@ WHERE document_id = $1 AND page_number >= $2;
 -- name: CreatePage :exec
 INSERT INTO page (document_id, page_number, content)
     VALUES ($1, $2, '');
+
+-- name: UpdatePageContent :exec
+UPDATE page
+SET content = $3
+WHERE document_id = $1 AND page_number = $2;
+
+-- name: CreateDocumentAccess :exec
+INSERT INTO document_access (user_id, document_id)
+VALUES ($1, $2);
+
+-- name: InsertProcessedEvent :execrows
+INSERT INTO processed_events (event_id) VALUES ($1) ON CONFLICT (event_id) DO NOTHING;
+
+-- name: DeleteDocumentAccess :exec
+DELETE FROM document_access
+WHERE user_id = $1 AND document_id = $2;

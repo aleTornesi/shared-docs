@@ -13,8 +13,7 @@ import (
 )
 
 func GetDocuments(c *gin.Context) {
-	conn, err := sql.Open("postgres", "host=db port=5432 user=postgres password=postgres dbname=shared-docs sslmode=disable")
-
+	conn, err := openDB()
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": err.Error(),
@@ -62,8 +61,7 @@ func GetDocuments(c *gin.Context) {
 }
 
 func GetDocument(c *gin.Context) {
-	conn, err := sql.Open("postgres", "host=db port=5432 user=postgres password=postgres dbname=shared-docs sslmode=disable")
-
+	conn, err := openDB()
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": err.Error(),
@@ -110,9 +108,7 @@ func GetDocument(c *gin.Context) {
 		document.Title = row.Title
 
 		document.Owner = User{ID: uint(row.OwnerID), Username: row.Username}
-		if row.PageNumber.Valid {
-			document.Pages = append(document.Pages, Page{Number: row.PageNumber.Int16, Content: row.Content.String})
-		}
+		document.Pages = append(document.Pages, Page{Number: row.PageNumber, Content: row.Content})
 	}
 
 	c.JSON(200, document)
@@ -123,8 +119,7 @@ type PatchDocumentBody struct {
 }
 
 func PatchDocument(c *gin.Context) {
-	conn, err := sql.Open("postgres", "host=db port=5432 user=postgres password=postgres dbname=shared-docs sslmode=disable")
-
+	conn, err := openDB()
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": err.Error(),

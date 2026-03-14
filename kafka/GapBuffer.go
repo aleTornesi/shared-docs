@@ -4,15 +4,11 @@ import "fmt"
 
 const defaultCapacity = 16
 
-// GapBuffer represents a text buffer using the gap buffer data structure.
-// The buffer is a flat array split into two parts by a "gap":
-//
-//	[ text_before_cursor | --- gap --- | text_after_cursor ]
-//	0                  gapStart     gapEnd               cap
 type GapBuffer struct {
 	buf      []rune
 	gapStart int // index of first rune IN the gap (free space)
 	gapEnd   int // index of first rune AFTER the gap (real text resumes)
+	offset   int // cumulative rune shift from inserts/deletes since buffer creation
 }
 
 func NewGapBuffer(text string, cursor int) (*GapBuffer, error) {
@@ -60,9 +56,9 @@ func (g *GapBuffer) grow() {
 	g.gapEnd = newGapEnd
 }
 
-func (g *GapBuffer) MoveCursor(pos int) {
+func (g *GapBuffer) MoveCursor(pos int) error {
 	if pos < 0 || pos > g.Len() {
-		panic("cursor position out of range")
+		return fmt.Errorf("cursor position out of range")
 	}
 
 	if pos < g.gapStart {
@@ -76,6 +72,7 @@ func (g *GapBuffer) MoveCursor(pos int) {
 		g.gapStart += delta
 		g.gapEnd += delta
 	}
+	return nil
 }
 
 func (g *GapBuffer) Insert(r rune) {
@@ -84,6 +81,7 @@ func (g *GapBuffer) Insert(r rune) {
 	}
 	g.buf[g.gapStart] = r
 	g.gapStart++
+	g.offset++
 }
 
 func (g *GapBuffer) InsertString(s string) {
@@ -97,6 +95,7 @@ func (g *GapBuffer) Delete() {
 		return
 	}
 	g.gapStart--
+	g.offset--
 }
 
 func (g *GapBuffer) DeleteForward() {
@@ -115,6 +114,17 @@ func (g *GapBuffer) String() string {
 
 func (g *GapBuffer) CursorPos() int {
 	return g.gapStart
+}
+
+// OriginalCursorPos returns the cursor position in the original (pre-edit) coordinate space.
+func (g *GapBuffer) OriginalCursorPos() int {
+	return g.gapStart - g.offset
+}
+
+// MoveCursorOriginal moves the cursor to an original-coordinate position,
+// adjusting for accumulated inserts/deletes.
+func (g *GapBuffer) MoveCursorOriginal(pos int) error {
+	return g.MoveCursor(max(pos+g.offset, 0))
 }
 
 func (g *GapBuffer) debugView() {

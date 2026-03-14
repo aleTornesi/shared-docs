@@ -16,8 +16,7 @@ type AddPageBody struct {
 }
 
 func AddPage(c *gin.Context) {
-	conn, err := sql.Open("postgres", "host=db port=5432 user=postgres password=postgres dbname=shared-docs sslmode=disable")
-
+	conn, err := openDB()
 	if err != nil {
 		c.JSON(500, gin.H{
 			"error": err.Error(),

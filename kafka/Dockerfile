@@ -11,7 +11,7 @@ RUN ["go", "mod", "download"]
 
 COPY kafka/ .
 
-RUN ["go", "build", "-o", "kafka"]
+RUN CGO_ENABLED=0 go build -o kafka
 
 FROM alpine:3.17
 

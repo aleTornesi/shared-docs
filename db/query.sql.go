@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createDocument = `-- name: CreateDocument :one
@@ -28,6 +27,21 @@ func (q *Queries) CreateDocument(ctx context.Context, arg CreateDocumentParams) 
 	return id, err
 }
 
+const createDocumentAccess = `-- name: CreateDocumentAccess :exec
+INSERT INTO document_access (user_id, document_id)
+VALUES ($1, $2)
+`
+
+type CreateDocumentAccessParams struct {
+	UserID     int64
+	DocumentID int64
+}
+
+func (q *Queries) CreateDocumentAccess(ctx context.Context, arg CreateDocumentAccessParams) error {
+	_, err := q.db.ExecContext(ctx, createDocumentAccess, arg.UserID, arg.DocumentID)
+	return err
+}
+
 const createPage = `-- name: CreatePage :exec
 INSERT INTO page (document_id, page_number, content)
     VALUES ($1, $2, '')
@@ -43,11 +57,26 @@ func (q *Queries) CreatePage(ctx context.Context, arg CreatePageParams) error {
 	return err
 }
 
+const deleteDocumentAccess = `-- name: DeleteDocumentAccess :exec
+DELETE FROM document_access
+WHERE user_id = $1 AND document_id = $2
+`
+
+type DeleteDocumentAccessParams struct {
+	UserID     int64
+	DocumentID int64
+}
+
+func (q *Queries) DeleteDocumentAccess(ctx context.Context, arg DeleteDocumentAccessParams) error {
+	_, err := q.db.ExecContext(ctx, deleteDocumentAccess, arg.UserID, arg.DocumentID)
+	return err
+}
+
 const getDocument = `-- name: GetDocument :many
 SELECT d.id, d.title, d.owner_id, u.username, p.page_number, p.content
 FROM documents d
 INNER JOIN users u ON d.owner_id = u.id
-LEFT JOIN page p ON d.id = p.document_id
+INNER JOIN page p ON d.id = p.document_id
 WHERE d.id = $1 and (
     d.owner_id = $2 OR EXISTS (
         SELECT 1
@@ -68,8 +97,8 @@ type GetDocumentRow struct {
 	Title      string
 	OwnerID    int64
 	Username   string
-	PageNumber sql.NullInt16
-	Content    sql.NullString
+	PageNumber int16
+	Content    string
 }
 
 func (q *Queries) GetDocument(ctx context.Context, arg GetDocumentParams) ([]GetDocumentRow, error) {
@@ -106,7 +135,7 @@ const getDocuments = `-- name: GetDocuments :many
 SELECT d.id, d.title, d.owner_id, u.username, pages.c
 FROM documents d
 INNER JOIN users u ON d.owner_id = u.id
-LEFT JOIN LATERAL (
+INNER JOIN LATERAL (
     SELECT count(*) AS c FROM page WHERE document_id = d.id
 ) pages ON true
 WHERE d.owner_id = $1 OR EXISTS (
@@ -154,6 +183,18 @@ func (q *Queries) GetDocuments(ctx context.Context, ownerID int64) ([]GetDocumen
 	return items, nil
 }
 
+const insertProcessedEvent = `-- name: InsertProcessedEvent :execrows
+INSERT INTO processed_events (event_id) VALUES ($1) ON CONFLICT (event_id) DO NOTHING
+`
+
+func (q *Queries) InsertProcessedEvent(ctx context.Context, eventID string) (int64, error) {
+	result, err := q.db.ExecContext(ctx, insertProcessedEvent, eventID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const putTitle = `-- name: PutTitle :exec
 UPDATE documents
 SET title = $1
@@ -175,6 +216,23 @@ type PutTitleParams struct {
 
 func (q *Queries) PutTitle(ctx context.Context, arg PutTitleParams) error {
 	_, err := q.db.ExecContext(ctx, putTitle, arg.Title, arg.ID, arg.OwnerID)
+	return err
+}
+
+const updatePageContent = `-- name: UpdatePageContent :exec
+UPDATE page
+SET content = $3
+WHERE document_id = $1 AND page_number = $2
+`
+
+type UpdatePageContentParams struct {
+	DocumentID int64
+	PageNumber int16
+	Content    string
+}
+
+func (q *Queries) UpdatePageContent(ctx context.Context, arg UpdatePageContentParams) error {
+	_, err := q.db.ExecContext(ctx, updatePageContent, arg.DocumentID, arg.PageNumber, arg.Content)
 	return err
 }
 
